@@ -22,7 +22,6 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
         lastName: document.getElementById('lastName').value,
         email: document.getElementById('email').value,
         phone: document.getElementById('phone').value,
-        company: document.getElementById('company').value,
         message: document.getElementById('message').value,
         timestamp: new Date().toISOString()
     };
