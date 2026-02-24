@@ -1,0 +1,8 @@
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+  publish = "."
+
+[dev]
+  functions = "netlify/functions"
+  port = 8888

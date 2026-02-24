@@ -28,7 +28,7 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
     };
 
     try {
-        const response = await fetch('/api/register', {
+        const response = await fetch('/.netlify/functions/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
