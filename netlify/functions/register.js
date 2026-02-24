@@ -261,6 +261,45 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
             html: notificationHtml,
         });
 
+        // ===== INSTANTLY CRM: Add lead =====
+        const instantlyApiKey = process.env.INSTANTLY_API_KEY;
+        if (instantlyApiKey) {
+            try {
+                const instantlyResponse = await fetch('https://api.instantly.ai/api/v2/leads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${instantlyApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone: phone || '',
+                        campaign: 'c5b7c5ee-9646-42ab-abbb-c9b5e2b6f59d',
+                        skip_if_in_campaign: true,
+                        custom_variables: {
+                            source: 'SMM Fundraiser Registration',
+                            registration_date: timestamp,
+                            message: message || ''
+                        }
+                    })
+                });
+
+                if (!instantlyResponse.ok) {
+                    const errorBody = await instantlyResponse.text();
+                    console.error('Instantly CRM error:', instantlyResponse.status, errorBody);
+                } else {
+                    console.log('Lead added to Instantly CRM successfully');
+                }
+            } catch (instantlyError) {
+                // Log but don't fail the registration if Instantly has an issue
+                console.error('Instantly CRM integration error:', instantlyError.message);
+            }
+        } else {
+            console.warn('INSTANTLY_API_KEY not configured, skipping CRM integration');
+        }
+
         // Return success
         return {
             statusCode: 200,
