@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init)",
+      "Bash(git remote add origin https://github.com/berteloot/SMM.git)",
+      "Bash(cd /Users/stanislasberteloot/Projects/Claude/SMM\\\\ Registrations && git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

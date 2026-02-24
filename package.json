@@ -1,0 +1,22 @@
+{
+  "name": "smm-registrations",
+  "version": "1.0.0",
+  "description": "Registration page with SendGrid email notifications",
+  "main": "api/register.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "registration",
+    "sendgrid",
+    "static-site"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.3",
+    "express": "^4.18.2",
+    "dotenv": "^16.4.1"
+  }
+}
