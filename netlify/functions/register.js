@@ -36,7 +36,7 @@ exports.handler = async (event) => {
             data = event.body;
         }
 
-        const { firstName, lastName, email, phone, company, message, timestamp } = data;
+        const { firstName, lastName, email, phone, message, timestamp } = data;
 
         // Validate required fields
         if (!firstName || !lastName || !email) {
@@ -89,7 +89,6 @@ exports.handler = async (event) => {
 Name: ${firstName} ${lastName}
 Email: ${email}
 ${phone ? `Phone: ${phone}` : 'No phone provided'}
-${company ? `Company: ${company}` : 'No company provided'}
 ${message ? `User Comment: ${message}` : 'No additional comments'}
         `;
 
@@ -219,13 +218,6 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
                         </div>
                         ` : ''}
 
-                        ${company ? `
-                        <div class="field">
-                            <div class="label">Company</div>
-                            <div class="value">${company}</div>
-                        </div>
-                        ` : ''}
-
                         ${message ? `
                         <div class="field">
                             <div class="label">Their Message</div>
@@ -246,7 +238,7 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
             </html>
         `;
 
-        const notificationText = `New Registration!\n\nName: ${firstName} ${lastName}\nEmail: ${email}\n${phone ? `Phone: ${phone}\n` : ''}${company ? `Company: ${company}\n` : ''}${message ? `Message: ${message}\n` : ''}Registration Time: ${new Date(timestamp).toLocaleString()}`;
+        const notificationText = `New Registration!\n\nName: ${firstName} ${lastName}\nEmail: ${email}\n${phone ? `Phone: ${phone}\n` : ''}${message ? `Message: ${message}\n` : ''}Registration Time: ${new Date(timestamp).toLocaleString()}`;
 
         // Send both emails
         const fromField = { email: senderEmail, name: 'Stan Berteloot, Share My Meals' };
