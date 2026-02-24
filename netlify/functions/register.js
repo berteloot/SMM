@@ -60,7 +60,8 @@ exports.handler = async (event) => {
         // Initialize SendGrid and OpenAI
         const sendgridApiKey = process.env.SENDGRID_API_KEY;
         const openaiApiKey = process.env.OPENAI_API_KEY;
-        const recipientEmail = process.env.RECIPIENT_EMAIL || 'your-email@example.com';
+        const senderEmail = process.env.SENDER_EMAIL || process.env.FROM_EMAIL;
+        const recipientEmail = process.env.RECIPIENT_EMAIL || senderEmail;
 
         if (!sendgridApiKey) {
             console.error('SendGrid API key not configured');
@@ -208,7 +209,7 @@ Return ONLY the email body (no subject line, no HTML tags, just plain text that 
         // Send email via SendGrid
         const msg = {
             to: recipientEmail,
-            from: process.env.SENDER_EMAIL || 'noreply@yourdomain.com',
+            from: senderEmail,
             subject: `New Registration: ${firstName} ${lastName}`,
             text: emailText,
             html: emailHtml,
