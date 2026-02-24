@@ -1,5 +1,6 @@
 // Serverless function for Render.com
 const sgMail = require('@sendgrid/mail');
+const { OpenAI } = require('openai');
 
 module.exports = async (req, res) => {
     // Set CORS headers
@@ -23,10 +24,10 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const { firstName, lastName, email, phone, company, interests, message, timestamp } = req.body;
+        const { firstName, lastName, email, phone, company, message, timestamp } = req.body;
 
         // Validate required fields
-        if (!firstName || !lastName || !email || !interests) {
+        if (!firstName || !lastName || !email) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -36,18 +37,62 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Invalid email format' });
         }
 
-        // Initialize SendGrid
-        const apiKey = process.env.SENDGRID_API_KEY;
+        // Initialize SendGrid and OpenAI
+        const sendgridApiKey = process.env.SENDGRID_API_KEY;
+        const openaiApiKey = process.env.OPENAI_API_KEY;
         const recipientEmail = process.env.RECIPIENT_EMAIL || 'your-email@example.com';
 
-        if (!apiKey) {
+        if (!sendgridApiKey) {
             console.error('SendGrid API key not configured');
             return res.status(500).json({ error: 'Email service not configured' });
         }
 
-        sgMail.setApiKey(apiKey);
+        if (!openaiApiKey) {
+            console.error('OpenAI API key not configured');
+            return res.status(500).json({ error: 'AI service not configured' });
+        }
 
-        // Format the email content
+        sgMail.setApiKey(sendgridApiKey);
+        const openai = new OpenAI({ apiKey: openaiApiKey });
+
+        // Generate lively email content using OpenAI
+        const userInfo = `
+Name: ${firstName} ${lastName}
+Email: ${email}
+${phone ? `Phone: ${phone}` : 'No phone provided'}
+${company ? `Company: ${company}` : 'No company provided'}
+${message ? `User Comment: ${message}` : 'No additional comments'}
+        `;
+
+        const prompt = `You are a warm, enthusiastic, and professional assistant. Generate a nice, lively, and personalized welcome email for a new registration. The email should feel authentic and genuine, not overly corporate.
+
+Here's the new registrant's information:
+${userInfo}
+
+Please create an engaging welcome email that:
+1. Greets them warmly and makes them feel valued
+2. ${message ? 'References their comment about ' + message : 'Thanks them for joining'}
+3. Gives them a sense of what's coming next or what to expect
+4. Has a friendly, conversational tone
+5. Ends with a warm closing
+
+Return ONLY the email body (no subject line, no HTML tags, just plain text that will be used in an email).`;
+
+        const aiResponse = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 500
+        });
+
+        const emailBodyText = aiResponse.choices[0].message.content;
+
+        // Create HTML version with styling
         const emailHtml = `
             <!DOCTYPE html>
             <html>
@@ -57,19 +102,27 @@ module.exports = async (req, res) => {
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                     .header { background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
                     .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .field { margin-bottom: 20px; }
-                    .label { font-weight: bold; color: #6366f1; margin-bottom: 5px; }
-                    .value { background: white; padding: 10px; border-radius: 5px; border-left: 3px solid #6366f1; }
+                    .email-body { background: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #6366f1; }
+                    .field { margin-bottom: 15px; }
+                    .label { font-weight: bold; color: #6366f1; margin-bottom: 5px; font-size: 12px; }
+                    .value { background: white; padding: 8px; border-radius: 3px; font-size: 14px; }
                     .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+                    .section-title { font-weight: bold; color: #6366f1; margin-top: 20px; margin-bottom: 10px; font-size: 13px; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1 style="margin: 0;">New Registration Received!</h1>
-                        <p style="margin: 10px 0 0 0; opacity: 0.9;">Someone just registered on your website</p>
+                        <h1 style="margin: 0;">Welcome, ${firstName}! 🎉</h1>
+                        <p style="margin: 10px 0 0 0; opacity: 0.9;">New Registration Received</p>
                     </div>
                     <div class="content">
+                        <div class="email-body">
+                            ${emailBodyText.split('\n').map(line => `<p>${line}</p>`).join('')}
+                        </div>
+
+                        <div class="section-title">Registration Details</div>
+
                         <div class="field">
                             <div class="label">Name</div>
                             <div class="value">${firstName} ${lastName}</div>
@@ -94,14 +147,9 @@ module.exports = async (req, res) => {
                         </div>
                         ` : ''}
 
-                        <div class="field">
-                            <div class="label">Area of Interest</div>
-                            <div class="value">${interests}</div>
-                        </div>
-
                         ${message ? `
                         <div class="field">
-                            <div class="label">Message</div>
+                            <div class="label">Their Message</div>
                             <div class="value">${message}</div>
                         </div>
                         ` : ''}
@@ -119,18 +167,7 @@ module.exports = async (req, res) => {
             </html>
         `;
 
-        // Plain text version
-        const emailText = `
-New Registration Received!
-
-Name: ${firstName} ${lastName}
-Email: ${email}
-${phone ? `Phone: ${phone}` : ''}
-${company ? `Company: ${company}` : ''}
-Area of Interest: ${interests}
-${message ? `Message: ${message}` : ''}
-Registration Time: ${new Date(timestamp).toLocaleString()}
-        `;
+        const emailText = `Welcome, ${firstName}!\n\n${emailBodyText}\n\n---\nRegistration Details:\nName: ${firstName} ${lastName}\nEmail: ${email}\n${phone ? `Phone: ${phone}\n` : ''}${company ? `Company: ${company}\n` : ''}${message ? `Message: ${message}\n` : ''}Registration Time: ${new Date(timestamp).toLocaleString()}`;
 
         // Send email via SendGrid
         const msg = {

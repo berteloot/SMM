@@ -6,7 +6,8 @@
       "Bash(cd /Users/stanislasberteloot/Projects/Claude/SMM\\\\ Registrations && git branch:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cd /Users/stanislasberteloot/Projects/Claude/SMM\\\\ Registrations:*)"
     ]
   }
 }
