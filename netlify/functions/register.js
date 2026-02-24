@@ -93,7 +93,7 @@ ${company ? `Company: ${company}` : 'No company provided'}
 ${message ? `User Comment: ${message}` : 'No additional comments'}
         `;
 
-        const prompt = `You are Stan Berteloot from Share My Meals. Generate a warm, lively, and personalized confirmation email for someone who just registered for the Share My Meals Fundraiser event on Thursday, April 2 from 6:30 PM to 8:30 PM. The email should feel authentic and genuine, not overly corporate.
+        const prompt = `You are Stan Berteloot from Share My Meals. Generate a warm, lively, and personalized confirmation email for someone who just registered for the Share My Meals Fundraiser event on Thursday, April 2 from 6:30 PM to 8:30 PM at 24 Broadripple Dr, Princeton, NJ 08540. The email should feel authentic and genuine, not overly corporate.
 
 Here's the registrant's information:
 ${userInfo}
@@ -101,8 +101,8 @@ ${userInfo}
 Please create an engaging confirmation email that:
 1. Greets them warmly by first name and thanks them for registering
 2. ${message ? 'Acknowledges their comment: "' + message + '"' : 'Thanks them for signing up'}
-3. Mentions the event details (Thursday April 2, 6:30 PM - 8:30 PM)
-4. Lets them know the address will be sent separately closer to the event
+3. Mentions we look forward to seeing them on Thursday April 2
+4. Do NOT repeat the event details (date, time, address) as they are already shown above
 5. Has a friendly, conversational tone
 6. Do NOT include a sign-off or signature at the end (it will be added automatically)
 
@@ -127,11 +127,12 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
             <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #fa642b;">
                 <p style="margin: 0; font-weight: bold; color: #545454;">Stan Berteloot</p>
                 <p style="margin: 4px 0; color: #fa642b; font-weight: 600;">Share My Meals</p>
+                <p style="margin: 4px 0; color: #545454; font-size: 14px;"><a href="tel:609-933-4363" style="color: #545454; text-decoration: none;">609-933-4363</a></p>
                 <a href="https://sharemymeals.org/" style="color: #fa642b; text-decoration: none; font-size: 14px;">sharemymeals.org</a>
             </div>
         `;
 
-        const signatureText = `\n\n--\nStan Berteloot\nShare My Meals\nhttps://sharemymeals.org/`;
+        const signatureText = `\n\n--\nStan Berteloot\nShare My Meals\n609-933-4363\nhttps://sharemymeals.org/`;
 
         // ===== EMAIL 1: Confirmation email to the registrant =====
         const confirmationHtml = `
@@ -159,7 +160,8 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
                         <div class="event-info">
                             <p><strong>📅 Thursday, April 2</strong></p>
                             <p><strong>🕖 6:30 PM - 8:30 PM</strong></p>
-                            <p style="margin-top: 12px; font-size: 13px;">The address will be confirmed in a separate email closer to the event.</p>
+                            <p><strong>📍 24 Broadripple Dr, Princeton, NJ 08540</strong></p>
+                            <p style="margin-top: 8px; font-size: 13px;">Questions? Contact Stan at <a href="tel:609-933-4363" style="color: #fa642b;">609-933-4363</a></p>
                         </div>
 
                         <div class="email-body">
@@ -175,7 +177,7 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
             </html>
         `;
 
-        const confirmationText = `You're Registered for the Share My Meals Fundraiser!\n\nEvent: Thursday, April 2 | 6:30 PM - 8:30 PM\nThe address will be confirmed in a separate email closer to the event.\n\n${emailBodyText}${signatureText}`;
+        const confirmationText = `You're Registered for the Share My Meals Fundraiser!\n\nEvent: Thursday, April 2 | 6:30 PM - 8:30 PM\nAddress: 24 Broadripple Dr, Princeton, NJ 08540\nQuestions? Contact Stan at 609-933-4363\n\n${emailBodyText}${signatureText}`;
 
         // ===== EMAIL 2: Notification email to Stan (admin) =====
         const notificationHtml = `
