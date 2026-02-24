@@ -1,22 +1,48 @@
 const sgMail = require('@sendgrid/mail');
 const { OpenAI } = require('openai');
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
+    // Set CORS headers
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Content-Type': 'application/json'
+    };
+
+    // Handle OPTIONS requests
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ ok: true })
+        };
+    }
+
     // Only allow POST requests
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
+            headers,
             body: JSON.stringify({ error: 'Method not allowed' })
         };
     }
 
     try {
-        const { firstName, lastName, email, phone, company, message, timestamp } = JSON.parse(event.body);
+        let data;
+        if (typeof event.body === 'string') {
+            data = JSON.parse(event.body);
+        } else {
+            data = event.body;
+        }
+
+        const { firstName, lastName, email, phone, company, message, timestamp } = data;
 
         // Validate required fields
         if (!firstName || !lastName || !email) {
             return {
                 statusCode: 400,
+                headers,
                 body: JSON.stringify({ error: 'Missing required fields' })
             };
         }
@@ -26,6 +52,7 @@ exports.handler = async (event, context) => {
         if (!emailRegex.test(email)) {
             return {
                 statusCode: 400,
+                headers,
                 body: JSON.stringify({ error: 'Invalid email format' })
             };
         }
@@ -39,6 +66,7 @@ exports.handler = async (event, context) => {
             console.error('SendGrid API key not configured');
             return {
                 statusCode: 500,
+                headers,
                 body: JSON.stringify({ error: 'Email service not configured' })
             };
         }
@@ -47,6 +75,7 @@ exports.handler = async (event, context) => {
             console.error('OpenAI API key not configured');
             return {
                 statusCode: 500,
+                headers,
                 body: JSON.stringify({ error: 'AI service not configured' })
             };
         }
@@ -190,6 +219,7 @@ Return ONLY the email body (no subject line, no HTML tags, just plain text that 
         // Return success
         return {
             statusCode: 200,
+            headers,
             body: JSON.stringify({
                 success: true,
                 message: 'Registration successful'
@@ -205,9 +235,10 @@ Return ONLY the email body (no subject line, no HTML tags, just plain text that 
 
         return {
             statusCode: 500,
+            headers,
             body: JSON.stringify({
                 error: 'Failed to process registration',
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+                details: error.message
             })
         };
     }
