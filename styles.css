@@ -5,9 +5,10 @@
 }
 
 :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
+    --primary: #fa642b;
+    --primary-dark: #e85a1f;
+    --primary-light: #fb7c45;
+    --secondary: #545454;
     --success: #10b981;
     --error: #ef4444;
     --text-primary: #1f2937;
@@ -39,9 +40,9 @@ body {
     width: 200%;
     height: 200%;
     background: linear-gradient(45deg,
-        rgba(99, 102, 241, 0.1) 0%,
-        rgba(168, 85, 247, 0.1) 50%,
-        rgba(236, 72, 153, 0.1) 100%);
+        rgba(250, 100, 43, 0.08) 0%,
+        rgba(250, 100, 43, 0.05) 50%,
+        rgba(84, 84, 84, 0.05) 100%);
     animation: rotate 20s linear infinite;
     z-index: -1;
 }

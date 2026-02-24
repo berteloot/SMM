@@ -100,28 +100,36 @@ Return ONLY the email body (no subject line, no HTML tags, just plain text that 
                 <style>
                     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
+                    .header { background: linear-gradient(135deg, #fa642b 0%, #fb7c45 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
                     .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .email-body { background: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #6366f1; }
+                    .email-body { background: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #fa642b; }
                     .field { margin-bottom: 15px; }
-                    .label { font-weight: bold; color: #6366f1; margin-bottom: 5px; font-size: 12px; }
+                    .label { font-weight: bold; color: #fa642b; margin-bottom: 5px; font-size: 12px; }
                     .value { background: white; padding: 8px; border-radius: 3px; font-size: 14px; }
                     .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
-                    .section-title { font-weight: bold; color: #6366f1; margin-top: 20px; margin-bottom: 10px; font-size: 13px; }
+                    .section-title { font-weight: bold; color: #fa642b; margin-top: 20px; margin-bottom: 10px; font-size: 13px; }
+                    .event-info { background: #fff5f0; padding: 15px; border-left: 4px solid #fa642b; margin-bottom: 20px; border-radius: 5px; }
+                    .event-info p { margin: 8px 0; color: #545454; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
                         <h1 style="margin: 0;">Welcome, ${firstName}! 🎉</h1>
-                        <p style="margin: 10px 0 0 0; opacity: 0.9;">New Registration Received</p>
+                        <p style="margin: 10px 0 0 0; opacity: 0.9;">Share My Meals Fundraiser</p>
                     </div>
                     <div class="content">
+                        <div class="event-info">
+                            <p><strong>📅 Thursday, April 2</strong></p>
+                            <p><strong>🕖 6:30 PM - 8:30 PM</strong></p>
+                            <p style="margin-top: 12px; font-size: 13px;">Address will be confirmed in your email. Thank you for your registration!</p>
+                        </div>
+
                         <div class="email-body">
                             ${emailBodyText.split('\n').map(line => `<p>${line}</p>`).join('')}
                         </div>
 
-                        <div class="section-title">Registration Details</div>
+                        <div class="section-title">Your Registration Details</div>
 
                         <div class="field">
                             <div class="label">Name</div>
