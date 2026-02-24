@@ -1,7 +1,11 @@
 [build]
-  command = "npm install && cd netlify/functions && npm install"
+  command = "npm install"
   functions = "netlify/functions"
   publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = []
 
 [dev]
   functions = "netlify/functions"

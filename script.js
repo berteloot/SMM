@@ -44,8 +44,10 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
             // Scroll to success message
             successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
-            // Error
-            throw new Error('Registration failed');
+            // Error - log the response details
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Server error:', response.status, errorData);
+            throw new Error(errorData.details || errorData.error || 'Registration failed');
         }
     } catch (error) {
         console.error('Error:', error);
