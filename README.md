@@ -119,7 +119,7 @@ The registration form includes:
 - **First Name** (required)
 - **Last Name** (required)
 - **Email** (required, validated)
-- **Phone** (optional, auto-formatted)
+- **Phone** (required, auto-formatted)
 - **Company** (optional)
 - **Area of Interest** (required, dropdown)
 - **Message** (optional, textarea)

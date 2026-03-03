@@ -39,7 +39,7 @@ exports.handler = async (event) => {
         const { firstName, lastName, email, phone, message, timestamp } = data;
 
         // Validate required fields
-        if (!firstName || !lastName || !email) {
+        if (!firstName || !lastName || !email || !phone) {
             return {
                 statusCode: 400,
                 headers,

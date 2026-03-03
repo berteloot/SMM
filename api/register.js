@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
         const { firstName, lastName, email, phone, company, message, timestamp } = req.body;
 
         // Validate required fields
-        if (!firstName || !lastName || !email) {
+        if (!firstName || !lastName || !email || !phone) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
