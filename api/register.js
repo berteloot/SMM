@@ -120,7 +120,7 @@ Return ONLY the email body (no subject line, no HTML tags, just plain text that 
                     </div>
                     <div class="content">
                         <div class="event-info">
-                            <p><strong>📅 Thursday, April 2</strong></p>
+                            <p><strong>📅 Thursday, April 16</strong> <span style="background: #fa642b; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 6px;">New Date</span></p>
                             <p><strong>🕖 6:30 PM - 8:30 PM</strong></p>
                             <p style="margin-top: 12px; font-size: 13px;">Address will be confirmed in your email. Thank you for your registration!</p>
                         </div>

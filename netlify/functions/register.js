@@ -92,7 +92,7 @@ ${phone ? `Phone: ${phone}` : 'No phone provided'}
 ${message ? `User Comment: ${message}` : 'No additional comments'}
         `;
 
-        const prompt = `You are Stan Berteloot from Share My Meals. Generate a warm, lively, and personalized confirmation email for someone who just registered for the Share My Meals Fundraiser event on Thursday, April 2 from 6:30 PM to 8:30 PM at 24 Broadripple Dr, Princeton, NJ 08540. The email should feel authentic and genuine, not overly corporate.
+        const prompt = `You are Stan Berteloot from Share My Meals. Generate a warm, lively, and personalized confirmation email for someone who just registered for the Share My Meals Fundraiser event on Thursday, April 16 from 6:30 PM to 8:30 PM at 24 Broadripple Dr, Princeton, NJ 08540. The email should feel authentic and genuine, not overly corporate.
 
 Here's the registrant's information:
 ${userInfo}
@@ -100,7 +100,7 @@ ${userInfo}
 Please create an engaging confirmation email that:
 1. Greets them warmly by first name and thanks them for registering
 2. ${message ? 'Acknowledges their comment: "' + message + '"' : 'Thanks them for signing up'}
-3. Mentions we look forward to seeing them on Thursday April 2
+3. Mentions we look forward to seeing them on Thursday April 16
 4. Do NOT repeat the event details (date, time, address) as they are already shown above
 5. Has a friendly, conversational tone
 6. Do NOT include a sign-off or signature at the end (it will be added automatically)
@@ -157,7 +157,7 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
                     </div>
                     <div class="content">
                         <div class="event-info">
-                            <p><strong>📅 Thursday, April 2</strong></p>
+                            <p><strong>📅 Thursday, April 16</strong> <span style="background: #fa642b; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 6px;">New Date</span></p>
                             <p><strong>🕖 6:30 PM - 8:30 PM</strong></p>
                             <p><strong>📍 24 Broadripple Dr, Princeton, NJ 08540</strong></p>
                             <p style="margin-top: 8px; font-size: 13px;">Questions? Contact Stan at <a href="tel:609-933-4363" style="color: #fa642b;">609-933-4363</a></p>
@@ -176,7 +176,7 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
             </html>
         `;
 
-        const confirmationText = `You're Registered for the Share My Meals Fundraiser!\n\nEvent: Thursday, April 2 | 6:30 PM - 8:30 PM\nAddress: 24 Broadripple Dr, Princeton, NJ 08540\nQuestions? Contact Stan at 609-933-4363\n\n${emailBodyText}${signatureText}`;
+        const confirmationText = `You're Registered for the Share My Meals Fundraiser!\n\nEvent: Thursday, April 16 | 6:30 PM - 8:30 PM (New Date)\nAddress: 24 Broadripple Dr, Princeton, NJ 08540\nQuestions? Contact Stan at 609-933-4363\n\n${emailBodyText}${signatureText}`;
 
         // ===== EMAIL 2: Notification email to Stan (admin) =====
         const notificationHtml = `
@@ -247,7 +247,7 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
         await sgMail.send({
             to: email,
             from: fromField,
-            subject: `You're registered! Share My Meals Fundraiser - April 2`,
+            subject: `You're registered! Share My Meals Fundraiser - April 16 (New Date)`,
             text: confirmationText,
             html: confirmationHtml,
         });
