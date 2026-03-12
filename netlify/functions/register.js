@@ -276,7 +276,7 @@ Return ONLY the email body text (no subject line, no HTML tags, no signature).`;
                         first_name: firstName,
                         last_name: lastName,
                         phone: phone || '',
-                        campaign: 'c5b7c5ee-9646-42ab-abbb-c9b5e2b6f59d',
+                        campaign: '6d1db1d4-3eeb-4257-a260-def48a404332',
                         skip_if_in_campaign: true,
                         custom_variables: {
                             source: 'SMM Fundraiser Registration',
