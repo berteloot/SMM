@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Share My Meals — CEO Candidate Video Submission</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main class="card wide">
+    <header>
+      <div class="brand">Share My Meals</div>
+      <h1>CEO Candidate Video Submission</h1>
+      <p class="lede" id="greeting"></p>
+    </header>
+
+    <section id="loading" class="state">
+      <p>Loading your session...</p>
+    </section>
+
+    <section id="error" class="state" hidden>
+      <h2>We can't load this link</h2>
+      <p id="error-msg"></p>
+      <p>If this seems wrong, reply to the email we sent or contact stan@sharemymeals.org.</p>
+    </section>
+
+    <section id="recorder" class="state" hidden>
+      <div class="prose">
+        <p>Thank you for your interest in the Chief Executive Officer position at Share My Meals. Before we schedule interviews, we ask each candidate to record a short video responding to the three questions below.</p>
+
+        <h2>Guidelines</h2>
+        <p>Your video should be between <strong>3 and 5 minutes total</strong>. Please answer all three questions in a single recording. There is no need to produce or edit the video, a simple webcam or phone recording is fine. We are interested in how you think, not production quality.</p>
+
+        <h2>Question 1</h2>
+        <p>Share My Meals recovers 230,000 prepared meals a year across New Jersey, working with Fortune 500 food donors and 55+ nonprofit partners. We are scaling to 300,000 meals across three states. Tell us: <strong>why this role, why you, and what you would focus on first</strong>.</p>
+
+        <h2>Question 2</h2>
+        <p>Describe a situation where you had to make a <strong>difficult leadership decision</strong> that not everyone agreed with. What did you do, and what happened?</p>
+
+        <h2>Question 3</h2>
+        <p>The CEO of Share My Meals also co-chairs the NJ Meal Recovery Coalition, a statewide coalition of corporations, food banks, and government agencies working to reduce food waste and food insecurity. <strong>How would you approach building and leading a coalition like this?</strong> Draw on any relevant experience.</p>
+      </div>
+
+      <div class="video-wrap">
+        <video id="preview" autoplay muted playsinline></video>
+        <div class="timer" id="timer">00:00 / 05:00</div>
+      </div>
+
+      <div class="controls">
+        <button id="start-btn" type="button">Start recording</button>
+        <button id="stop-btn" type="button" hidden>Stop</button>
+        <button id="redo-btn" type="button" hidden>Re-record</button>
+        <button id="submit-btn" type="button" hidden>Submit application</button>
+      </div>
+
+      <p id="status-msg" class="msg" role="status" aria-live="polite"></p>
+      <div class="progress" id="progress" hidden>
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </section>
+
+    <section id="done" class="state" hidden>
+      <h2>Got it. Thank you.</h2>
+      <p>Your application is in. We just sent you a confirmation email. Stan and the Share My Meals board will review and reach out.</p>
+    </section>
+  </main>
+
+  <script type="module" src="/js/record.js"></script>
+</body>
+</html>

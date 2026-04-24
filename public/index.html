@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Share My Meals: CEO Application</title>
+  <meta name="description" content="Apply to lead Share My Meals, a New Jersey food rescue nonprofit. Record a short video to begin.">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main class="card">
+    <header>
+      <div class="brand">Share My Meals</div>
+      <h1>Apply to be our next CEO</h1>
+      <p class="lede">Tell us, on camera, why you want to lead Share My Meals. It takes about five minutes.</p>
+    </header>
+
+    <form id="apply-form" novalidate>
+      <div class="row">
+        <label>
+          <span>First name</span>
+          <input name="first_name" type="text" required autocomplete="given-name" maxlength="60">
+        </label>
+        <label>
+          <span>Last name</span>
+          <input name="last_name" type="text" required autocomplete="family-name" maxlength="60">
+        </label>
+      </div>
+      <label>
+        <span>Email</span>
+        <input name="email" type="email" required autocomplete="email" maxlength="254">
+      </label>
+      <label>
+        <span>LinkedIn URL <em>(optional)</em></span>
+        <input name="linkedin" type="url" autocomplete="url" placeholder="https://linkedin.com/in/you">
+      </label>
+
+      <div id="turnstile-wrap" class="turnstile-wrap"></div>
+
+      <button type="submit" id="submit-btn">Send me the recording link</button>
+      <p id="form-msg" class="msg" role="status" aria-live="polite"></p>
+    </form>
+
+    <footer>
+      <p>Your information is used only for this search. Video is hosted privately and reviewed by Stan and the Share My Meals board.</p>
+    </footer>
+  </main>
+
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script type="module" src="/js/apply.js"></script>
+</body>
+</html>

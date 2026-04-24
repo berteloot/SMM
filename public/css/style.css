@@ -1,0 +1,229 @@
+:root {
+  --orange: #F86A0E;
+  --navy: #313C59;
+  --ink: #1d2333;
+  --muted: #6b7280;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --error: #b91c1c;
+  --success: #166534;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Roboto Condensed", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.55;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.card {
+  background: var(--card);
+  max-width: 560px;
+  width: 100%;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 6px 28px rgba(49, 60, 89, 0.08);
+}
+
+.card.wide { max-width: 780px; }
+
+.brand {
+  color: var(--orange);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 30px;
+  line-height: 1.2;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: var(--navy);
+}
+
+.lede {
+  color: var(--muted);
+  margin: 0 0 28px;
+  font-size: 16px;
+}
+
+form label {
+  display: block;
+  margin-bottom: 16px;
+}
+
+form .row {
+  display: flex;
+  gap: 12px;
+}
+
+form .row label { flex: 1; }
+
+form label span {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+form label em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 400;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="url"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  background: #fff;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(248, 106, 14, 0.15);
+}
+
+.turnstile-wrap {
+  margin: 18px 0 22px;
+  min-height: 65px;
+}
+
+button {
+  background: var(--orange);
+  color: #fff;
+  border: 0;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button:hover { background: #e25d08; }
+button:disabled { background: #c4c7cc; cursor: not-allowed; }
+
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+.controls button#redo-btn { background: #fff; color: var(--navy); border: 1px solid var(--border); }
+.controls button#redo-btn:hover { background: #f5f6f8; }
+
+.msg {
+  margin: 14px 0 0;
+  font-size: 14px;
+  min-height: 20px;
+}
+
+.msg[data-kind="error"] { color: var(--error); }
+.msg[data-kind="success"] { color: var(--success); }
+
+footer {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+footer p { margin: 0; }
+
+.prose {
+  background: #fafbfc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 0 0 24px;
+  color: var(--navy);
+  font-size: 15px;
+}
+
+.prose h2 {
+  font-size: 15px;
+  margin: 18px 0 6px;
+  color: var(--orange);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.prose h2:first-of-type { margin-top: 8px; }
+
+.prose p { margin: 0 0 12px; }
+.prose p:last-child { margin-bottom: 0; }
+
+.prose strong { color: var(--navy); font-weight: 700; }
+
+.video-wrap {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 16px;
+}
+
+.video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.timer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.2s ease;
+}
+
+.timer[data-state="warning"] { background: rgba(217, 119, 6, 0.85); }
+.timer[data-state="critical"] { background: rgba(185, 28, 28, 0.9); }
+
+.progress {
+  margin-top: 14px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 6px;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--orange);
+  transition: width 0.2s ease;
+}
+
+.state { min-height: 100px; }
