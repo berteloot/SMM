@@ -53,9 +53,28 @@ export async function handler(event) {
   if (!alreadySubmitted) {
     await sendConfirmationEmail(updated).catch((err) => console.error("confirmation_email_failed", err));
     await notifyTelegram(updated).catch((err) => console.error("telegram_notify_failed", err));
+    triggerEvaluation(tokenBody, event).catch((err) => console.error("evaluation_trigger_failed", err));
   }
 
   return json(200, { ok: true });
+}
+
+function triggerEvaluation(tokenBody, event) {
+  const proto = event.headers["x-forwarded-proto"] || "https";
+  const host = event.headers["x-forwarded-host"] || event.headers.host;
+  const baseUrl = process.env.SMM_SITE_URL || (host ? `${proto}://${host}` : null);
+  if (!baseUrl) {
+    console.warn("evaluation_trigger_no_base_url");
+    return Promise.resolve();
+  }
+  const url = `${baseUrl.replace(/\/$/, "")}/.netlify/functions/evaluate-background`;
+  return fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token_body: tokenBody }),
+  }).then((res) => {
+    if (!res.ok && res.status !== 202) console.warn("evaluation_trigger_unexpected_status", res.status);
+  });
 }
 
 async function sendConfirmationEmail(candidate) {

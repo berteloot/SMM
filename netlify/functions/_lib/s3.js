@@ -60,3 +60,13 @@ export async function presignPut(key, contentType, expiresSeconds = 3600) {
   });
   return getSignedUrl(s3(), cmd, { expiresIn: expiresSeconds });
 }
+
+export async function presignGet(key, expiresSeconds = 7 * 24 * 3600) {
+  const cmd = new GetObjectCommand({ Bucket: bucket(), Key: key });
+  return getSignedUrl(s3(), cmd, { expiresIn: expiresSeconds });
+}
+
+export async function getObjectBytes(key) {
+  const res = await s3().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+  return Buffer.from(await res.Body.transformToByteArray());
+}
