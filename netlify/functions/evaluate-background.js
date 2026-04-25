@@ -2,6 +2,7 @@ import sgMail from "@sendgrid/mail";
 import { getJson, putJson, getObjectBytes, presignGet } from "./_lib/s3.js";
 import { uploadVideo, analyzeVideo } from "./_lib/gemini.js";
 import { ANALYSIS_PROMPT } from "./_lib/analysis_prompt.js";
+import { pushCandidate } from "./_lib/notion.js";
 
 const json = (statusCode, obj) => ({
   statusCode,
@@ -64,13 +65,17 @@ export async function handler(event) {
 
   const videoUrl = await presignGet(candidate.video_key);
   const evaluationUrl = await presignGet(evaluationKey);
-  await sendAdminEmail(candidate, evaluation, evalError, videoUrl, evaluationUrl)
+
+  const notionPage = await pushCandidate({ candidate, evaluation, videoUrl, evaluationUrl })
+    .catch((err) => { console.error("notion_push_failed", err); return null; });
+
+  await sendAdminEmail(candidate, evaluation, evalError, videoUrl, evaluationUrl, notionPage)
     .catch((err) => console.error("admin_email_failed", err));
 
   return json(200, { ok: true });
 }
 
-async function sendAdminEmail(candidate, evaluation, evalError, videoUrl, evaluationUrl) {
+async function sendAdminEmail(candidate, evaluation, evalError, videoUrl, evaluationUrl, notionPage) {
   const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) {
     console.warn("no_sendgrid_key, skipping admin email");
@@ -93,12 +98,12 @@ async function sendAdminEmail(candidate, evaluation, evalError, videoUrl, evalua
     },
     replyTo: candidate.email,
     subject,
-    text: buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUrl),
-    html: buildAdminHtml(candidate, evaluation, evalError, videoUrl, evaluationUrl),
+    text: buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUrl, notionPage),
+    html: buildAdminHtml(candidate, evaluation, evalError, videoUrl, evaluationUrl, notionPage),
   });
 }
 
-function buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUrl) {
+function buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUrl, notionPage) {
   const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim();
   const lines = [
     `Candidate: ${fullName} <${candidate.email}>`,
@@ -107,7 +112,8 @@ function buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUr
     "",
     `Video: ${videoUrl}`,
     `Full evaluation JSON: ${evaluationUrl}`,
-    "(Links expire in 7 days)",
+    notionPage ? `Notion record: ${notionPage.url}` : null,
+    "(Video + JSON links expire in 7 days)",
     "",
   ].filter(Boolean);
 
@@ -144,7 +150,7 @@ function buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUr
   return lines.filter(Boolean).join("\n");
 }
 
-function buildAdminHtml(candidate, evaluation, evalError, videoUrl, evaluationUrl) {
+function buildAdminHtml(candidate, evaluation, evalError, videoUrl, evaluationUrl, notionPage) {
   const fullName = escapeHtml(`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim());
   const linkedinRow = candidate.linkedin
     ? `<tr><td style="padding:4px 12px 4px 0;color:#6b7280">LinkedIn</td><td><a href="${escapeHtml(candidate.linkedin)}">${escapeHtml(candidate.linkedin)}</a></td></tr>`
@@ -195,8 +201,9 @@ ${scoreRow("Cultural fit", "cultural_fit")}
   <a href="${escapeHtml(videoUrl)}" style="background:#F86A0E;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;display:inline-block">Watch video</a>
   &nbsp;
   <a href="${escapeHtml(evaluationUrl)}" style="background:#fff;color:#313C59;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;display:inline-block;border:1px solid #e5e7eb">Full evaluation JSON</a>
+  ${notionPage ? `&nbsp;<a href="${escapeHtml(notionPage.url)}" style="background:#fff;color:#313C59;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;display:inline-block;border:1px solid #e5e7eb">Open in Notion</a>` : ""}
 </p>
-<p style="margin:0 0 12px;font-size:12px;color:#6b7280">Links expire in 7 days.</p>
+<p style="margin:0 0 12px;font-size:12px;color:#6b7280">Video + JSON links expire in 7 days.</p>
 
 ${evalBlock}
 </div>`;
