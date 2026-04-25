@@ -64,11 +64,40 @@ async function init() {
 }
 
 function pickContentType() {
-  const candidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
+  // iOS Safari's MediaRecorder claims to support video/webm but produces
+  // audio-only output. Force mp4 (h264+aac) on Safari, where it works.
+  const candidates = isIOS || isSafari
+    ? ["video/mp4", "video/mp4;codecs=h264,aac", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
+    : ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
   for (const c of candidates) {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(c)) return c;
   }
   return "video/webm";
+}
+
+function blobHasVideo(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      resolve(ok);
+    };
+    v.onloadedmetadata = () => {
+      const hasVideo = v.videoWidth > 0 && v.videoHeight > 0;
+      finish(hasVideo);
+    };
+    v.onerror = () => finish(false);
+    setTimeout(() => finish(false), 5000);
+    v.src = url;
+  });
 }
 
 function renderSession() {
@@ -202,17 +231,30 @@ startBtn.addEventListener("click", async () => {
   const mimeType = session.upload_content_type;
   mediaRecorder = new MediaRecorder(mediaStream, MediaRecorder.isTypeSupported(mimeType) ? { mimeType } : undefined);
   mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-  mediaRecorder.onstop = () => {
+  mediaRecorder.onstop = async () => {
     clearTimer();
-    videoBlob = new Blob(chunks, { type: mediaRecorder.mimeType || mimeType });
+    const blob = new Blob(chunks, { type: mediaRecorder.mimeType || mimeType });
     preview.srcObject = null;
     preview.muted = false;
-    preview.src = URL.createObjectURL(videoBlob);
+    preview.src = URL.createObjectURL(blob);
     preview.controls = true;
     redoBtn.hidden = false;
-    submitBtn.hidden = false;
     startBtn.hidden = true;
     stopBtn.hidden = true;
+
+    setStatus("Checking your recording...");
+    const hasVideo = await blobHasVideo(blob);
+    if (!hasVideo) {
+      videoBlob = null;
+      submitBtn.hidden = true;
+      setStatus(
+        "Your recording captured audio but no video. This is usually an iPhone Safari issue. Please tap Re-record, then make sure you can see yourself in the preview the whole time. If the issue keeps happening, open this link directly in Safari (not from Gmail/Instagram/LinkedIn) and reload the page.",
+        "error",
+      );
+      return;
+    }
+    videoBlob = blob;
+    submitBtn.hidden = false;
     setStatus("Preview your recording above. Re-record if you'd like, or submit.");
   };
   mediaRecorder.start();
