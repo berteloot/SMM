@@ -17,6 +17,10 @@ const statusMsg = $("status-msg");
 const progress = $("progress");
 const progressBar = $("progress-bar");
 
+const MIN_ACCEPTABLE_FPS = 10;
+const FRAME_PROBE_REAL_SECONDS = 3;
+const FRAME_PROBE_PLAYBACK_RATE = 4;
+
 let session = null;
 let mediaStream = null;
 let mediaRecorder = null;
@@ -24,6 +28,9 @@ let chunks = [];
 let videoBlob = null;
 let recordingStartedAt = 0;
 let timerInterval = null;
+let wakeLock = null;
+let recorderError = null;
+let visibilityHandler = null;
 
 function showOnly(section) {
   for (const el of [loading, errorBox, recorder, done]) el.hidden = el !== section;
@@ -67,8 +74,8 @@ function pickContentType() {
   const ua = navigator.userAgent || "";
   const isIOS = /iPad|iPhone|iPod/.test(ua);
   const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
-  // iOS Safari's MediaRecorder claims to support video/webm but produces
-  // audio-only output. Force mp4 (h264+aac) on Safari, where it works.
+  // iOS Safari MediaRecorder claims to support video/webm but produces
+  // audio-only files. Force mp4 (h264+aac) on Safari, where it works.
   const candidates = isIOS || isSafari
     ? ["video/mp4", "video/mp4;codecs=h264,aac", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
     : ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
@@ -78,24 +85,66 @@ function pickContentType() {
   return "video/webm";
 }
 
-function blobHasVideo(blob) {
+// Returns { ok, reason, fps } after loading the blob and probing actual decoded frames.
+function probeBlob(blob) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
     const v = document.createElement("video");
-    v.preload = "metadata";
+    v.preload = "auto";
+    v.muted = true;
+    v.playsInline = true;
     let settled = false;
-    const finish = (ok) => {
+    let frameCount = 0;
+    let probeStartedAt = 0;
+    let probeStopped = false;
+
+    const finish = (result) => {
       if (settled) return;
       settled = true;
+      try { v.pause(); } catch (e) {}
       URL.revokeObjectURL(url);
-      resolve(ok);
+      resolve(result);
     };
-    v.onloadedmetadata = () => {
-      const hasVideo = v.videoWidth > 0 && v.videoHeight > 0;
-      finish(hasVideo);
+
+    v.onerror = () => finish({ ok: false, reason: "decode_error" });
+
+    v.onloadedmetadata = async () => {
+      if (!(v.videoWidth > 0 && v.videoHeight > 0)) {
+        return finish({ ok: false, reason: "no_video_track" });
+      }
+      if (!v.duration || v.duration < 1) {
+        return finish({ ok: false, reason: "too_short" });
+      }
+      if (typeof v.requestVideoFrameCallback !== "function") {
+        // Browsers without RVFC: trust the dimensions check, accept.
+        return finish({ ok: true, reason: "no_rvfc", fps: null });
+      }
+
+      const tickFrame = () => {
+        frameCount += 1;
+        if (probeStopped) return;
+        v.requestVideoFrameCallback(tickFrame);
+      };
+
+      try {
+        v.playbackRate = FRAME_PROBE_PLAYBACK_RATE;
+        v.requestVideoFrameCallback(tickFrame);
+        await v.play();
+        probeStartedAt = performance.now();
+      } catch (e) {
+        return finish({ ok: false, reason: "play_failed" });
+      }
+
+      setTimeout(() => {
+        probeStopped = true;
+        const realElapsed = (performance.now() - probeStartedAt) / 1000;
+        const videoElapsed = realElapsed * FRAME_PROBE_PLAYBACK_RATE;
+        const fps = videoElapsed > 0 ? frameCount / videoElapsed : 0;
+        finish({ ok: fps >= MIN_ACCEPTABLE_FPS, reason: fps >= MIN_ACCEPTABLE_FPS ? "ok" : "low_fps", fps });
+      }, FRAME_PROBE_REAL_SECONDS * 1000);
     };
-    v.onerror = () => finish(false);
-    setTimeout(() => finish(false), 5000);
+
+    setTimeout(() => finish({ ok: false, reason: "probe_timeout" }), 30000);
     v.src = url;
   });
 }
@@ -105,7 +154,15 @@ function renderSession() {
   greeting.textContent = firstName ? `Hi ${firstName}, welcome.` : "Welcome.";
 }
 
-async function startCamera() {
+function stopMediaTracks() {
+  if (mediaStream) {
+    for (const t of mediaStream.getTracks()) t.stop();
+    mediaStream = null;
+  }
+}
+
+async function startCamera({ fresh } = {}) {
+  if (fresh) stopMediaTracks();
   if (mediaStream) return mediaStream;
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -118,7 +175,12 @@ async function startCamera() {
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30, min: 15 },
+        facingMode: "user",
+      },
       audio: { echoCancellation: true, noiseSuppression: true },
     });
   } catch (err) {
@@ -218,8 +280,48 @@ function clearTimer() {
   timerInterval = null;
 }
 
+async function acquireWakeLock() {
+  try {
+    if (navigator.wakeLock && navigator.wakeLock.request) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener?.("release", () => { wakeLock = null; });
+    }
+  } catch (e) {
+    // Not supported or denied; silently continue. The visibility check still fires.
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock) {
+    try { await wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+}
+
+function attachVisibilityWatcher() {
+  detachVisibilityWatcher();
+  visibilityHandler = () => {
+    if (document.visibilityState === "hidden" && mediaRecorder && mediaRecorder.state === "recording") {
+      recorderError = "interrupted";
+      try { mediaRecorder.stop(); } catch (e) {}
+    } else if (document.visibilityState === "visible" && wakeLock === null && mediaRecorder && mediaRecorder.state === "recording") {
+      // Re-acquire wake lock if it was released when the page was backgrounded.
+      acquireWakeLock();
+    }
+  };
+  document.addEventListener("visibilitychange", visibilityHandler);
+}
+
+function detachVisibilityWatcher() {
+  if (visibilityHandler) {
+    document.removeEventListener("visibilitychange", visibilityHandler);
+    visibilityHandler = null;
+  }
+}
+
 startBtn.addEventListener("click", async () => {
   setStatus("");
+  recorderError = null;
   try {
     await startCamera();
   } catch (err) {
@@ -229,10 +331,21 @@ startBtn.addEventListener("click", async () => {
   chunks = [];
   videoBlob = null;
   const mimeType = session.upload_content_type;
-  mediaRecorder = new MediaRecorder(mediaStream, MediaRecorder.isTypeSupported(mimeType) ? { mimeType } : undefined);
-  mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+  const recorderOpts = MediaRecorder.isTypeSupported(mimeType)
+    ? { mimeType, videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 }
+    : { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 };
+
+  mediaRecorder = new MediaRecorder(mediaStream, recorderOpts);
+  mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+  mediaRecorder.onerror = (e) => {
+    recorderError = (e && e.error && e.error.name) || "recorder_error";
+    console.error("MediaRecorder error", e);
+  };
   mediaRecorder.onstop = async () => {
     clearTimer();
+    detachVisibilityWatcher();
+    await releaseWakeLock();
+
     const blob = new Blob(chunks, { type: mediaRecorder.mimeType || mimeType });
     preview.srcObject = null;
     preview.muted = false;
@@ -242,29 +355,59 @@ startBtn.addEventListener("click", async () => {
     startBtn.hidden = true;
     stopBtn.hidden = true;
 
-    setStatus("Checking your recording...");
-    const hasVideo = await blobHasVideo(blob);
-    if (!hasVideo) {
+    if (recorderError === "interrupted") {
       videoBlob = null;
       submitBtn.hidden = true;
       setStatus(
-        "Your recording captured audio but no video. This is usually an iPhone Safari issue. Please tap Re-record, then make sure you can see yourself in the preview the whole time. If the issue keeps happening, open this link directly in Safari (not from Gmail/Instagram/LinkedIn) and reload the page.",
+        "Recording was interrupted because the page lost focus (screen lock, app switch, or notification). Please tap Re-record and stay on this page until you finish.",
         "error",
       );
+      return;
+    }
+    if (recorderError) {
+      videoBlob = null;
+      submitBtn.hidden = true;
+      setStatus(
+        `Your recording hit an error (${recorderError}). Please tap Re-record. If it keeps happening, try a different browser or device.`,
+        "error",
+      );
+      return;
+    }
+
+    setStatus("Checking your recording...");
+    const probe = await probeBlob(blob);
+    if (!probe.ok) {
+      videoBlob = null;
+      submitBtn.hidden = true;
+      const reasons = {
+        no_video_track: "Your recording captured audio but no video. This is usually an iPhone Safari issue. Open this link directly in Safari (not from Gmail/Instagram/LinkedIn) and try again.",
+        low_fps: `Your recording froze partway through (only ${probe.fps ? probe.fps.toFixed(1) : "?"} frames per second). Please tap Re-record and stay on this tab the entire time. Don't let your screen lock.`,
+        too_short: "Your recording is too short. Please tap Re-record and answer all three questions.",
+        decode_error: "We couldn't read your recording. Please tap Re-record. If this keeps happening, try a different browser.",
+        play_failed: "Your browser couldn't play back the recording for verification. Please tap Re-record.",
+        probe_timeout: "Verifying your recording took too long. Please tap Re-record.",
+      };
+      setStatus(reasons[probe.reason] || `Your recording didn't pass our quality check (${probe.reason}). Please tap Re-record.`, "error");
       return;
     }
     videoBlob = blob;
     submitBtn.hidden = false;
     setStatus("Preview your recording above. Re-record if you'd like, or submit.");
   };
-  mediaRecorder.start();
+
+  // Periodic flush every 1s. iOS Safari's MediaRecorder freezes the video
+  // encoder if the buffer isn't drained periodically.
+  mediaRecorder.start(1000);
   startTimer();
+  attachVisibilityWatcher();
+  acquireWakeLock();
+
   startBtn.hidden = true;
   stopBtn.hidden = false;
   redoBtn.hidden = true;
   submitBtn.hidden = true;
   preview.controls = false;
-  setStatus("Recording. Speak clearly and take your time. Aim for 3 to 5 minutes.");
+  setStatus("Recording. Stay on this tab and keep your screen on. Aim for 3 to 5 minutes.");
 });
 
 function stopRecording() {
@@ -273,12 +416,21 @@ function stopRecording() {
 
 stopBtn.addEventListener("click", stopRecording);
 
-redoBtn.addEventListener("click", () => {
+redoBtn.addEventListener("click", async () => {
   videoBlob = null;
+  recorderError = null;
   preview.src = "";
   preview.controls = false;
-  if (mediaStream) preview.srcObject = mediaStream;
   preview.muted = true;
+
+  // Fresh getUserMedia so iOS doesn't reuse a stalled track.
+  try {
+    await startCamera({ fresh: true });
+  } catch (err) {
+    setStatus(err.message || "Couldn't restart the camera. Please reload the page.", "error");
+    return;
+  }
+
   redoBtn.hidden = true;
   submitBtn.hidden = true;
   startBtn.hidden = false;
@@ -304,7 +456,7 @@ submitBtn.addEventListener("click", async () => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || `error_${res.status}`);
-    if (mediaStream) for (const t of mediaStream.getTracks()) t.stop();
+    stopMediaTracks();
     showOnly(done);
   } catch (err) {
     setStatus(`Upload failed: ${err.message}. Please try again or contact stan@sharemymeals.org.`, "error");
@@ -333,5 +485,11 @@ function uploadToS3(blob, url, contentType) {
     xhr.send(blob);
   });
 }
+
+window.addEventListener("beforeunload", () => {
+  detachVisibilityWatcher();
+  releaseWakeLock();
+  stopMediaTracks();
+});
 
 init();
