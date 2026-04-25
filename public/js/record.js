@@ -86,6 +86,8 @@ function pickContentType() {
 }
 
 // Returns { ok, reason, fps } after loading the blob and probing actual decoded frames.
+// Uses v.currentTime (actual seconds of video consumed) as the divisor so short
+// recordings that finish before FRAME_PROBE_REAL_SECONDS aren't penalized.
 function probeBlob(blob) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
@@ -95,15 +97,25 @@ function probeBlob(blob) {
     v.playsInline = true;
     let settled = false;
     let frameCount = 0;
-    let probeStartedAt = 0;
-    let probeStopped = false;
+    let watchdog = null;
 
     const finish = (result) => {
       if (settled) return;
       settled = true;
+      if (watchdog) clearTimeout(watchdog);
       try { v.pause(); } catch (e) {}
       URL.revokeObjectURL(url);
       resolve(result);
+    };
+
+    const decide = () => {
+      const videoElapsed = v.currentTime;
+      const fps = videoElapsed > 0 ? frameCount / videoElapsed : 0;
+      finish({
+        ok: fps >= MIN_ACCEPTABLE_FPS,
+        reason: fps >= MIN_ACCEPTABLE_FPS ? "ok" : "low_fps",
+        fps,
+      });
     };
 
     v.onerror = () => finish({ ok: false, reason: "decode_error" });
@@ -122,26 +134,23 @@ function probeBlob(blob) {
 
       const tickFrame = () => {
         frameCount += 1;
-        if (probeStopped) return;
+        if (settled) return;
         v.requestVideoFrameCallback(tickFrame);
       };
+
+      // Stop early if the video ends naturally (short recordings)
+      v.onended = decide;
 
       try {
         v.playbackRate = FRAME_PROBE_PLAYBACK_RATE;
         v.requestVideoFrameCallback(tickFrame);
         await v.play();
-        probeStartedAt = performance.now();
       } catch (e) {
         return finish({ ok: false, reason: "play_failed" });
       }
 
-      setTimeout(() => {
-        probeStopped = true;
-        const realElapsed = (performance.now() - probeStartedAt) / 1000;
-        const videoElapsed = realElapsed * FRAME_PROBE_PLAYBACK_RATE;
-        const fps = videoElapsed > 0 ? frameCount / videoElapsed : 0;
-        finish({ ok: fps >= MIN_ACCEPTABLE_FPS, reason: fps >= MIN_ACCEPTABLE_FPS ? "ok" : "low_fps", fps });
-      }, FRAME_PROBE_REAL_SECONDS * 1000);
+      // Cap probe time so long recordings don't stall the UI
+      watchdog = setTimeout(decide, FRAME_PROBE_REAL_SECONDS * 1000);
     };
 
     setTimeout(() => finish({ ok: false, reason: "probe_timeout" }), 30000);
