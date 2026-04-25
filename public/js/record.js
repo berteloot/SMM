@@ -78,13 +78,86 @@ function renderSession() {
 
 async function startCamera() {
   if (mediaStream) return mediaStream;
-  mediaStream = await navigator.mediaDevices.getUserMedia({
-    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-    audio: { echoCancellation: true, noiseSuppression: true },
-  });
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new CameraError(
+      "no_api",
+      "Your browser doesn't support video recording. Please use the latest Safari (iPhone) or Chrome (computer) and try again.",
+    );
+  }
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+  } catch (err) {
+    throw new CameraError("permission_or_hardware", cameraErrorMessage(err));
+  }
+
+  const videoTracks = stream.getVideoTracks();
+  const audioTracks = stream.getAudioTracks();
+
+  if (videoTracks.length === 0) {
+    stream.getTracks().forEach((t) => t.stop());
+    throw new CameraError(
+      "no_video_track",
+      "We can hear you but we can't see you, your camera isn't connected to this page. " + howToFix(),
+    );
+  }
+  if (audioTracks.length === 0) {
+    stream.getTracks().forEach((t) => t.stop());
+    throw new CameraError(
+      "no_audio_track",
+      "Your microphone isn't connected to this page. " + howToFix(),
+    );
+  }
+  if (!videoTracks[0].enabled || videoTracks[0].readyState !== "live") {
+    stream.getTracks().forEach((t) => t.stop());
+    throw new CameraError(
+      "video_not_live",
+      "Your camera is connected but not sending video. Close any other app using your camera (Zoom, FaceTime, Photo Booth) and reload this page.",
+    );
+  }
+
+  mediaStream = stream;
   preview.srcObject = mediaStream;
   preview.muted = true;
   return mediaStream;
+}
+
+class CameraError extends Error {
+  constructor(code, userMessage) {
+    super(userMessage);
+    this.code = code;
+  }
+}
+
+function cameraErrorMessage(err) {
+  const name = err && err.name;
+  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+    return "Camera and microphone access was blocked. " + howToFix();
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "No camera or microphone was found on this device.";
+  }
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "Your camera is in use by another app. Close Zoom, FaceTime, Photo Booth, or any other camera app and reload this page.";
+  }
+  if (name === "OverconstrainedError") {
+    return "Your camera doesn't support the requested resolution. Try a different device or browser.";
+  }
+  return "We couldn't access your camera or microphone. " + howToFix();
+}
+
+function howToFix() {
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  if (isIOS) {
+    return "On iPhone: tap the AA icon in the Safari address bar -> Website Settings -> set Camera and Microphone to Allow, then reload. Make sure you're using Safari directly, not a link opened inside Gmail, Instagram, or LinkedIn.";
+  }
+  return "Click the camera icon in the address bar of your browser, set Camera and Microphone to Allow, then reload this page.";
 }
 
 function formatMMSS(seconds) {
@@ -121,7 +194,7 @@ startBtn.addEventListener("click", async () => {
   try {
     await startCamera();
   } catch (err) {
-    setStatus("We couldn't access your camera or microphone. Check browser permissions and try again.", "error");
+    setStatus(err.message || "We couldn't access your camera or microphone. " + howToFix(), "error");
     return;
   }
   chunks = [];
