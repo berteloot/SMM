@@ -17,10 +17,6 @@ const statusMsg = $("status-msg");
 const progress = $("progress");
 const progressBar = $("progress-bar");
 
-const MIN_ACCEPTABLE_FPS = 10;
-const FRAME_PROBE_REAL_SECONDS = 3;
-const FRAME_PROBE_PLAYBACK_RATE = 4;
-
 let session = null;
 let mediaStream = null;
 let mediaRecorder = null;
@@ -85,75 +81,38 @@ function pickContentType() {
   return "video/webm";
 }
 
-// Returns { ok, reason, fps } after loading the blob and probing actual decoded frames.
-// Uses v.currentTime (actual seconds of video consumed) as the divisor so short
-// recordings that finish before FRAME_PROBE_REAL_SECONDS aren't penalized.
+// Validates that the recorded blob has a usable video track and a sensible
+// duration. We previously also ran a frame-rate probe (playing the video at
+// 4x and counting requestVideoFrameCallback events), but Chrome drops frames
+// during fast playback so the count was unreliable and produced false
+// rejections. The upstream fixes (timeslice flush, screen wake lock,
+// visibilitychange listener, Safari mp4 forcing, frameRate constraint, and
+// track validation in startCamera) prevent the freeze bug at its source.
+// If a freeze still slips through, Gemini calls it out in the behavioral
+// observations during evaluation.
 function probeBlob(blob) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
     const v = document.createElement("video");
-    v.preload = "auto";
-    v.muted = true;
-    v.playsInline = true;
+    v.preload = "metadata";
     let settled = false;
-    let frameCount = 0;
-    let watchdog = null;
-
     const finish = (result) => {
       if (settled) return;
       settled = true;
-      if (watchdog) clearTimeout(watchdog);
-      try { v.pause(); } catch (e) {}
       URL.revokeObjectURL(url);
       resolve(result);
     };
-
-    const decide = () => {
-      const videoElapsed = v.currentTime;
-      const fps = videoElapsed > 0 ? frameCount / videoElapsed : 0;
-      finish({
-        ok: fps >= MIN_ACCEPTABLE_FPS,
-        reason: fps >= MIN_ACCEPTABLE_FPS ? "ok" : "low_fps",
-        fps,
-      });
-    };
-
     v.onerror = () => finish({ ok: false, reason: "decode_error" });
-
-    v.onloadedmetadata = async () => {
+    v.onloadedmetadata = () => {
       if (!(v.videoWidth > 0 && v.videoHeight > 0)) {
         return finish({ ok: false, reason: "no_video_track" });
       }
       if (!v.duration || v.duration < 1) {
         return finish({ ok: false, reason: "too_short" });
       }
-      if (typeof v.requestVideoFrameCallback !== "function") {
-        // Browsers without RVFC: trust the dimensions check, accept.
-        return finish({ ok: true, reason: "no_rvfc", fps: null });
-      }
-
-      const tickFrame = () => {
-        frameCount += 1;
-        if (settled) return;
-        v.requestVideoFrameCallback(tickFrame);
-      };
-
-      // Stop early if the video ends naturally (short recordings)
-      v.onended = decide;
-
-      try {
-        v.playbackRate = FRAME_PROBE_PLAYBACK_RATE;
-        v.requestVideoFrameCallback(tickFrame);
-        await v.play();
-      } catch (e) {
-        return finish({ ok: false, reason: "play_failed" });
-      }
-
-      // Cap probe time so long recordings don't stall the UI
-      watchdog = setTimeout(decide, FRAME_PROBE_REAL_SECONDS * 1000);
+      finish({ ok: true, reason: "ok" });
     };
-
-    setTimeout(() => finish({ ok: false, reason: "probe_timeout" }), 30000);
+    setTimeout(() => finish({ ok: false, reason: "probe_timeout" }), 10000);
     v.src = url;
   });
 }
@@ -390,10 +349,8 @@ startBtn.addEventListener("click", async () => {
       submitBtn.hidden = true;
       const reasons = {
         no_video_track: "Your recording captured audio but no video. This is usually an iPhone Safari issue. Open this link directly in Safari (not from Gmail/Instagram/LinkedIn) and try again.",
-        low_fps: `Your recording froze partway through (only ${probe.fps ? probe.fps.toFixed(1) : "?"} frames per second). Please tap Re-record and stay on this tab the entire time. Don't let your screen lock.`,
         too_short: "Your recording is too short. Please tap Re-record and answer all three questions.",
         decode_error: "We couldn't read your recording. Please tap Re-record. If this keeps happening, try a different browser.",
-        play_failed: "Your browser couldn't play back the recording for verification. Please tap Re-record.",
         probe_timeout: "Verifying your recording took too long. Please tap Re-record.",
       };
       setStatus(reasons[probe.reason] || `Your recording didn't pass our quality check (${probe.reason}). Please tap Re-record.`, "error");
