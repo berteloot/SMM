@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp";
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-pro";
 
 let _client;
 function client() {
