@@ -137,6 +137,9 @@ function buildAdminText(candidate, evaluation, evalError, videoUrl, evaluationUr
       "",
       "Concerns:",
       evaluation.concerns,
+      "",
+      "On-camera presence:",
+      evaluation.behavioral_observations || "(no observations recorded)",
     );
   } else {
     lines.push(
@@ -178,7 +181,9 @@ ${scoreRow("Cultural fit", "cultural_fit")}
 <h3 style="margin:16px 0 4px;color:#313C59;font-size:14px">Strengths</h3>
 <p style="margin:0 0 12px">${escapeHtml(evaluation.strengths)}</p>
 <h3 style="margin:16px 0 4px;color:#313C59;font-size:14px">Concerns</h3>
-<p style="margin:0 0 12px">${escapeHtml(evaluation.concerns)}</p>`;
+<p style="margin:0 0 12px">${escapeHtml(evaluation.concerns)}</p>
+<h3 style="margin:16px 0 4px;color:#313C59;font-size:14px">On-camera presence</h3>
+<p style="margin:0 0 12px;font-style:italic;color:#444">${escapeHtml(evaluation.behavioral_observations || "(no observations recorded)")}</p>`;
   } else {
     evalBlock = `
 <h2 style="margin:24px 0 8px;color:#b91c1c">AI evaluation failed</h2>

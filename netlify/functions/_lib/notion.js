@@ -45,6 +45,7 @@ export async function pushCandidate({ candidate, evaluation, videoUrl, evaluatio
     properties["Cultural Fit"] = { number: evaluation.scores?.cultural_fit ?? null };
     properties["Strengths"] = { rich_text: t(evaluation.strengths) };
     properties["Concerns"] = { rich_text: t(evaluation.concerns) };
+    properties["Behavioral Observations"] = { rich_text: t(evaluation.behavioral_observations) };
   }
 
   const res = await fetch(`${NOTION_API}/pages`, {
