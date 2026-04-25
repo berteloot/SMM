@@ -53,7 +53,7 @@ export async function handler(event) {
   if (!alreadySubmitted) {
     await sendConfirmationEmail(updated).catch((err) => console.error("confirmation_email_failed", err));
     await notifyTelegram(updated).catch((err) => console.error("telegram_notify_failed", err));
-    triggerEvaluation(tokenBody, event).catch((err) => console.error("evaluation_trigger_failed", err));
+    await triggerEvaluation(tokenBody, event).catch((err) => console.error("evaluation_trigger_failed", err));
   }
 
   return json(200, { ok: true });
