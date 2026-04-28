@@ -227,3 +227,21 @@ footer p { margin: 0; }
 }
 
 .state { min-height: 100px; }
+
+#success-state h2 {
+  color: var(--orange);
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+
+#success-state p {
+  margin: 0 0 12px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+#success-state .hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 18px;
+}

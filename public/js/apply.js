@@ -59,7 +59,11 @@ form.addEventListener("submit", async (e) => {
       throw new Error(out.error || `error_${res.status}`);
     }
     form.hidden = true;
-    setMsg(`Thanks. We sent a recording link to ${body.email}. Check your inbox (and spam folder).`, "success");
+    setMsg("");
+    const success = document.getElementById("success-state");
+    const successEmail = document.getElementById("success-email");
+    if (successEmail) successEmail.textContent = body.email;
+    if (success) success.hidden = false;
   } catch (err) {
     setMsg(friendlyError(err.message), "error");
     btn.disabled = false;
